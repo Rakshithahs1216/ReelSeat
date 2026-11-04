@@ -46,7 +46,8 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    if (res.status === 401 && auth && token) unauthorizedListeners.forEach((fn) => fn());
+    // Pass the token that was rejected so listeners can ignore stale responses.
+    if (res.status === 401 && auth && token) unauthorizedListeners.forEach((fn) => fn(token));
     throw new ApiError(res.status, data?.error || `Request failed (${res.status})`, data?.details);
   }
   return data;

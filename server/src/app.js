@@ -18,9 +18,12 @@ export function createApp({
   jwtExpiresIn = '2h',
   clientOrigin = 'http://localhost:5173',
   loginRateLimit = { windowMs: 15 * 60 * 1000, max: 20 },
+  trustProxy = false,
 }) {
   const app = express();
   app.disable('x-powered-by');
+  // When deployed behind a reverse proxy, set TRUST_PROXY so req.ip is the real client IP.
+  app.set('trust proxy', trustProxy);
   app.use(cors({ origin: clientOrigin }));
   app.use(express.json({ limit: '50kb' }));
   app.use((_req, res, next) => {
@@ -57,6 +60,9 @@ export function createApp({
     }
     if (typeof err.message === 'string' && err.message.includes('UNIQUE constraint failed: booking_seats')) {
       return res.status(409).json({ error: 'One or more seats were just booked by someone else' });
+    }
+    if (typeof err.message === 'string' && err.message.includes('UNIQUE constraint failed: users.email')) {
+      return res.status(409).json({ error: 'An account with this email already exists' });
     }
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

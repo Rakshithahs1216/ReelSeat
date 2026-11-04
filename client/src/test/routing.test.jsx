@@ -74,6 +74,38 @@ describe('role-based routing', () => {
     expect(await screen.findByText('Orbitfall')).toBeInTheDocument();
   });
 
+  it('returns the user to the page they originally requested after login', async () => {
+    mockApi({
+      'POST /auth/login': () => jsonResponse(200, { token: 'tok-user', user: USER }),
+      'GET /bookings': () => jsonResponse(200, []),
+    });
+    renderAt('/bookings');
+    await screen.findByRole('heading', { name: 'Welcome back' });
+    await userEvent.type(screen.getByLabelText('Email'), 'user@reelseat.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'User@1234');
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByRole('heading', { name: 'My bookings' })).toBeInTheDocument();
+  });
+
+  it('does not log out a fresh session when a stale token check fails late', async () => {
+    localStorage.setItem('reelseat.token', 'stale');
+    let rejectMe;
+    mockApi({
+      'GET /auth/me': () => new Promise((resolve) => { rejectMe = () => resolve({ ok: false, status: 401, json: () => Promise.resolve({ error: 'expired' }) }); }),
+      'POST /auth/login': () => jsonResponse(200, { token: 'fresh', user: USER }),
+      'GET /movies': () => jsonResponse(200, []),
+    });
+    renderAt('/login');
+    await userEvent.type(screen.getByLabelText('Email'), 'user@reelseat.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'User@1234');
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByRole('heading', { name: 'Now showing' })).toBeInTheDocument();
+    rejectMe();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(localStorage.getItem('reelseat.token')).toBe('fresh');
+    expect(screen.getByRole('heading', { name: 'Now showing' })).toBeInTheDocument();
+  });
+
   it('keeps regular users out of the admin panel', async () => {
     localStorage.setItem('reelseat.token', 'tok-user');
     mockApi({

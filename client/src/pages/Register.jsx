@@ -11,7 +11,7 @@ export default function Register() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  if (user) return <Navigate to={homePathFor(user)} replace />;
+  if (user && !submitting) return <Navigate to={homePathFor(user)} replace />;
 
   const update = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 

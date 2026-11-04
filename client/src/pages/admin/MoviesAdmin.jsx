@@ -63,7 +63,7 @@ export default function MoviesAdmin({ movies, run }) {
                   <td>{formatDuration(m.duration_min)}</td>
                   <td className="actions">
                     <ConfirmButton
-                      confirmLabel="Delete + shows?"
+                      confirmLabel="Delete movie, its shows & bookings?"
                       onConfirm={() => run(() => api.deleteMovie(m.id), `Movie "${m.title}" deleted.`)}
                     >Delete</ConfirmButton>
                   </td>

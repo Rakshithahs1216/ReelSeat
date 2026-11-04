@@ -11,6 +11,7 @@ const app = createApp({
   jwtSecret: config.jwtSecret,
   jwtExpiresIn: config.jwtExpiresIn,
   clientOrigin: config.clientOrigin,
+  trustProxy: config.trustProxy,
 });
 
 app.listen(config.port, () => {

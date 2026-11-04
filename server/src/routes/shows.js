@@ -15,7 +15,13 @@ export function showsRouter({ db }) {
   const router = Router();
 
   const getShow = db.prepare(`${SHOW_SELECT} WHERE s.id = ?`);
-  const bookedSeats = db.prepare('SELECT seat, booking_id FROM booking_seats WHERE show_id = ?');
+  const listShows = db.prepare(`${SHOW_SELECT} ORDER BY s.start_time`);
+  const listShowsForMovie = db.prepare(`${SHOW_SELECT} WHERE s.movie_id = ? ORDER BY s.start_time`);
+  // One query: every booked seat, flagged when it belongs to the requesting user.
+  const bookedSeats = db.prepare(`
+    SELECT bs.seat, bs.booking_id, (b.user_id = ?) AS mine
+    FROM booking_seats bs JOIN bookings b ON b.id = bs.booking_id
+    WHERE bs.show_id = ?`);
   const movieExists = db.prepare('SELECT 1 FROM movies WHERE id = ?');
   const theatreExists = db.prepare('SELECT 1 FROM theatres WHERE id = ?');
   const insertShow = db.prepare(
@@ -25,24 +31,20 @@ export function showsRouter({ db }) {
 
   router.get('/', (req, res) => {
     if (req.query.movieId !== undefined) {
-      const movieId = parseId(req.query.movieId);
-      return res.json(db.prepare(`${SHOW_SELECT} WHERE s.movie_id = ? ORDER BY s.start_time`).all(movieId));
+      return res.json(listShowsForMovie.all(parseId(req.query.movieId)));
     }
-    res.json(db.prepare(`${SHOW_SELECT} ORDER BY s.start_time`).all());
+    res.json(listShows.all());
   });
 
   router.get('/:id', (req, res) => {
     const show = getShow.get(parseId(req.params.id));
     if (!show) throw notFound('Show');
-    const seats = bookedSeats.all(show.id);
-    // Only reveal which seats belong to the caller's own bookings, not other users' booking ids.
-    const ownBookingIds = new Set(
-      db.prepare('SELECT id FROM bookings WHERE show_id = ? AND user_id = ?').all(show.id, req.user.id).map((b) => b.id),
-    );
+    const seats = bookedSeats.all(req.user.id, show.id);
+    // Only reveal booking ids for the caller's own seats, never other users'.
     res.json({
       ...show,
       booked_seats: seats.map((s) => s.seat),
-      my_seats: seats.filter((s) => ownBookingIds.has(s.booking_id)).map((s) => ({ seat: s.seat, booking_id: s.booking_id })),
+      my_seats: seats.filter((s) => s.mine).map((s) => ({ seat: s.seat, booking_id: s.booking_id })),
     });
   });
 

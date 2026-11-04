@@ -11,7 +11,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (user) return <Navigate to={homePathFor(user)} replace />;
+  // While a login submission is in flight, handleSubmit owns the redirect (it may target the
+  // page originally requested), so don't race it with the generic "already logged in" redirect.
+  if (user && !submitting) return <Navigate to={homePathFor(user)} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

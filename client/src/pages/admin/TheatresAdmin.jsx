@@ -50,7 +50,7 @@ export default function TheatresAdmin({ theatres, run }) {
                   <td>{t.seat_rows} × {t.seat_cols} ({t.seat_rows * t.seat_cols})</td>
                   <td className="actions">
                     <ConfirmButton
-                      confirmLabel="Delete + shows?"
+                      confirmLabel="Delete theatre, its shows & bookings?"
                       onConfirm={() => run(() => api.deleteTheatre(t.id), `Theatre "${t.name}" deleted.`)}
                     >Delete</ConfirmButton>
                   </td>

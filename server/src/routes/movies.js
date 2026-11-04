@@ -28,17 +28,17 @@ export function moviesRouter({ db }) {
     VALUES (:title, :description, :genre, :language, :duration_min, :rating, :poster_url, :release_date)
     RETURNING *`);
   const deleteMovie = db.prepare('DELETE FROM movies WHERE id = ?');
+  // Empty filter values match everything, so one statement covers all filter combinations.
+  const listMovies = db.prepare(`
+    SELECT * FROM movies
+    WHERE (:q = '' OR title LIKE '%' || :q || '%')
+      AND (:genre = '' OR genre LIKE '%' || :genre || '%')
+    ORDER BY release_date DESC, title`);
 
   router.get('/', (req, res) => {
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const genre = typeof req.query.genre === 'string' ? req.query.genre.trim() : '';
-    const clauses = [];
-    const params = [];
-    if (q) { clauses.push('title LIKE ?'); params.push(`%${q}%`); }
-    if (genre) { clauses.push('genre LIKE ?'); params.push(`%${genre}%`); }
-    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-    const movies = db.prepare(`SELECT * FROM movies ${where} ORDER BY release_date DESC, title`).all(...params);
-    res.json(movies);
+    const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 100) : '';
+    const genre = typeof req.query.genre === 'string' ? req.query.genre.trim().slice(0, 60) : '';
+    res.json(listMovies.all({ q, genre }));
   });
 
   router.get('/:id', (req, res) => {

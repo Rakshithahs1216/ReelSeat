@@ -69,7 +69,7 @@ export default function ShowsAdmin({ shows, movies, theatres, run }) {
                   <td>{formatPrice(s.price)}</td>
                   <td className="actions">
                     <ConfirmButton
-                      confirmLabel="Delete + bookings?"
+                      confirmLabel="Delete show & its bookings?"
                       onConfirm={() => run(() => api.deleteShow(s.id), 'Show deleted.')}
                     >Delete</ConfirmButton>
                   </td>

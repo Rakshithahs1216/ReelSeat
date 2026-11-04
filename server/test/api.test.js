@@ -79,13 +79,34 @@ describe('auth', () => {
     assert.equal(me.body.user.email, 'user@reelseat.com');
   });
 
-  it('rate limits login attempts', async () => {
+  it('rate limits failed login attempts but not successful ones', async () => {
     const limited = createApp({ db, jwtSecret: SECRET, loginRateLimit: { max: 2, windowMs: 60_000 } });
+    const good = { email: 'user@reelseat.com', password: 'User@1234' };
+    for (let i = 0; i < 3; i++) {
+      assert.equal((await request(limited).post('/api/auth/login').send(good)).status, 200);
+    }
     for (let i = 0; i < 2; i++) {
       await request(limited).post('/api/auth/login').send({ email: 'a@b.co', password: 'x' });
     }
     const res = await request(limited).post('/api/auth/login').send({ email: 'a@b.co', password: 'x' });
     assert.equal(res.status, 429);
+    assert.ok(res.headers['retry-after']);
+  });
+
+  it('caps passwords at 72 UTF-8 bytes (bcrypt limit)', async () => {
+    const res = await request(app).post('/api/auth/register')
+      .send({ name: 'Multi', email: 'multi@example.com', password: 'ü'.repeat(40) });
+    assert.equal(res.status, 400);
+    assert.match(res.body.details.password, /72 bytes/);
+  });
+
+  it('maps a concurrent duplicate registration to 409, not 500', async () => {
+    const body = { name: 'Race', email: 'race@example.com', password: 'password123' };
+    const [a, b] = await Promise.all([
+      request(app).post('/api/auth/register').send(body),
+      request(app).post('/api/auth/register').send(body),
+    ]);
+    assert.deepEqual([a.status, b.status].sort(), [201, 409]);
   });
 });
 
@@ -199,6 +220,22 @@ describe('bookings', () => {
     const eleven = Array.from({ length: 11 }, (_, i) => `C${i + 1}`);
     assert.equal((await book(t.userToken, eleven)).status, 400);
     assert.equal((await book(t.userToken, ['A1'], 99999)).status, 404);
+  });
+
+  it('rejects non-canonical seat codes so "A01" cannot alias "A1"', async () => {
+    assert.equal((await book(t.userToken, ['A1'])).status, 201);
+    assert.equal((await book(t.otherToken, ['A01'])).status, 400);
+    assert.equal((await book(t.otherToken, ['A0'])).status, 400);
+  });
+
+  it('rejects non-numeric types for numeric fields', async () => {
+    const asBool = await request(app).post('/api/bookings').set(auth(t.userToken)).send({ showId: true, seats: ['A1'] });
+    const asArray = await request(app).post('/api/bookings').set(auth(t.userToken)).send({ showId: [showId], seats: ['A1'] });
+    assert.equal(asBool.status, 400);
+    assert.equal(asArray.status, 400);
+    const freeShow = await request(app).post('/api/shows').set(auth(t.adminToken))
+      .send({ movie_id: 1, theatre_id: 1, start_time: future(), price: [] });
+    assert.equal(freeShow.status, 400);
   });
 
   it('rejects booking a show that already started', async () => {

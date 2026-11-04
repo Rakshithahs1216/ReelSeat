@@ -25,10 +25,16 @@ export function validate(body, schema) {
         if (typeof value !== 'string') { errors[field] = 'must be a string'; continue; }
         if (rule.min && value.length < rule.min) { errors[field] = `must be at least ${rule.min} characters`; continue; }
         if (rule.max && value.length > rule.max) { errors[field] = `must be at most ${rule.max} characters`; continue; }
+        // bcrypt only uses the first 72 bytes, so cap passwords by UTF-8 byte length.
+        if (rule.type === 'password' && Buffer.byteLength(value, 'utf8') > 72) { errors[field] = 'must be at most 72 bytes'; continue; }
         if (rule.pattern && !rule.pattern.test(value)) { errors[field] = rule.message || 'is invalid'; continue; }
         break;
       case 'int':
       case 'number': {
+        // Accept JSON numbers or plain numeric strings only - never booleans, arrays or objects.
+        if (typeof value !== 'number' && !(typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value))) {
+          errors[field] = `must be ${rule.type === 'int' ? 'an integer' : 'a number'}`; continue;
+        }
         const n = Number(value);
         if (!Number.isFinite(n) || (rule.type === 'int' && !Number.isInteger(n))) {
           errors[field] = `must be ${rule.type === 'int' ? 'an integer' : 'a number'}`; continue;
@@ -86,7 +92,8 @@ export function validateSeats(seats, theatre) {
   const unique = [...new Set(seats)];
   if (unique.length !== seats.length) throw badRequest('Duplicate seats in request');
   const invalid = unique.filter((s) => {
-    const m = /^([A-Z])(\d{1,2})$/.exec(s);
+    // Canonical form only: no leading zeros, so "A01" can never alias "A1".
+    const m = /^([A-Z])([1-9]\d?)$/.exec(s);
     if (!m) return true;
     const row = m[1].charCodeAt(0) - 65;
     const col = Number(m[2]);

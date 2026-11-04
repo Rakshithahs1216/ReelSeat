@@ -11,10 +11,18 @@ function resolveJwtSecret() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+function parseTrustProxy(value) {
+  if (!value || value === 'false') return false;
+  if (value === 'true') return true;
+  return /^\d+$/.test(value) ? Number(value) : value;
+}
+
 export const config = {
   port: Number(process.env.PORT) || 4000,
   dbPath: process.env.DB_PATH || 'reelseat.db',
   jwtSecret: resolveJwtSecret(),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '2h',
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  // e.g. "1" (one proxy hop) or "loopback"; see Express "trust proxy" docs.
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
 };

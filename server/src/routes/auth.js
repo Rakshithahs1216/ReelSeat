@@ -11,7 +11,9 @@ const DUMMY_HASH = bcrypt.hashSync('timing-equaliser', 10);
 
 export function authRouter({ db, jwtSecret, jwtExpiresIn, authenticate, loginRateLimit }) {
   const router = Router();
-  const limiter = rateLimit(loginRateLimit);
+  // Separate budgets: failed logins (brute force) vs. account creation (spam).
+  const loginLimiter = rateLimit({ ...loginRateLimit, countOnlyFailures: true });
+  const registerLimiter = rateLimit(loginRateLimit);
 
   const findByEmail = db.prepare('SELECT * FROM users WHERE email = ?');
   const insertUser = db.prepare(
@@ -23,7 +25,7 @@ export function authRouter({ db, jwtSecret, jwtExpiresIn, authenticate, loginRat
     res.status(status).json({ token: signToken(publicUser, jwtSecret, jwtExpiresIn), user: publicUser });
   };
 
-  router.post('/register', limiter, async (req, res) => {
+  router.post('/register', registerLimiter, async (req, res) => {
     const data = validate(req.body, {
       name: { type: 'string', required: true, min: 2, max: 80 },
       email: { type: 'string', required: true, max: 120, pattern: EMAIL, message: 'must be a valid email' },
@@ -36,7 +38,7 @@ export function authRouter({ db, jwtSecret, jwtExpiresIn, authenticate, loginRat
     respondWithToken(res, user, 201);
   });
 
-  router.post('/login', limiter, async (req, res) => {
+  router.post('/login', loginLimiter, async (req, res) => {
     const data = validate(req.body, {
       email: { type: 'string', required: true, max: 120 },
       password: { type: 'password', required: true, max: 72 },

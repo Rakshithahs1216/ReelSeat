@@ -12,22 +12,30 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  // Validate any stored token on startup.
-  useEffect(() => {
-    if (!tokenStore.get()) return;
-    let cancelled = false;
-    api.me()
-      .then(({ user: u }) => { if (!cancelled) setUser(u); })
-      .catch(() => { if (!cancelled) logout(); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+  /** Log out only if `token` is still the active one (a newer login must not be undone). */
+  const logoutIfCurrent = useCallback((token) => {
+    if (tokenStore.get() === token) logout();
   }, [logout]);
 
-  useEffect(() => onUnauthorized(logout), [logout]);
+  // Validate any stored token on startup.
+  useEffect(() => {
+    const token = tokenStore.get();
+    if (!token) return;
+    let cancelled = false;
+    api.me()
+      .then(({ user: u }) => { if (!cancelled && tokenStore.get() === token) setUser(u); })
+      .catch(() => { if (!cancelled) logoutIfCurrent(token); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [logoutIfCurrent]);
+
+  useEffect(() => onUnauthorized(logoutIfCurrent), [logoutIfCurrent]);
 
   const handleAuth = useCallback(({ token, user: u }) => {
     tokenStore.set(token);
     setUser(u);
+    // A fresh login supersedes any in-flight validation of a previously stored token.
+    setLoading(false);
     return u;
   }, []);
 
