@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+dist-ssr/
+
+# Environment / local data
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS / tooling
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+.claude/
+CLAUDE.md
