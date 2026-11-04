@@ -17,11 +17,9 @@ dist-ssr/
 *.log
 npm-debug.log*
 
-# Editor / OS / tooling
+# Editor / OS
 .vscode/*
 !.vscode/extensions.json
 .idea/
 .DS_Store
 *.swp
-.claude/
-CLAUDE.md
