@@ -41,7 +41,7 @@ code { background: var(--surface-2); padding: 0.1rem 0.35rem; border-radius: 4px
 /* Navbar */
 .navbar { background: rgba(15, 17, 23, 0.9); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px); }
 .navbar-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 1rem; }
-.brand { font-weight: 800; font-size: 1.25rem; color: var(--text); letter-spacing: -0.02em; }
+.brand { font-weight: 800; font-size: 1.25rem; color: var(--text); letter-spacing: -0.02em; white-space: nowrap; flex-shrink: 0; }
 .brand:hover { text-decoration: none; }
 .nav-links { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .nav-links a { color: var(--muted); font-weight: 500; }
@@ -189,5 +189,16 @@ td.actions { text-align: right; white-space: nowrap; }
   .booking-card { flex-wrap: wrap; }
   .booking-actions { flex-direction: row; width: 100%; justify-content: flex-end; }
   .nav-user { display: none; }
+  .navbar-inner { height: auto; min-height: 56px; padding-top: 0.5rem; padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+  .nav-links { flex-wrap: nowrap; gap: 0.75rem; font-size: 0.92rem; }
+  .nav-links a { white-space: nowrap; }
+  .summary { top: auto; }
+  .seatmap-card { padding: 0.75rem 0.5rem; }
+  .seat-grid, .seat-row { gap: 3px; }
+  .seat { width: 19px; height: 20px; font-size: 0.55rem; border-radius: 4px 4px 3px 3px; }
+  .seat-aisle { margin-right: 8px; }
+  .row-label { width: 12px; font-size: 0.65rem; }
+  .screen { width: 90%; font-size: 0.6rem; letter-spacing: 0.2em; }
+  .legend { gap: 0.75rem; font-size: 0.78rem; }
   .movie-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
 }
